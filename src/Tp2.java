@@ -3,6 +3,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.LineNumberReader;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ConcurrentMap;
 
@@ -10,80 +11,9 @@ public class Tp2 {
     public static void main(String[] args) {
         solution sol = new solution();
         sol.launch(args);
-        // for (ArrayList<String> element : sol.getParsedCmds()) {
-        // for (String ord : element) {
-        // System.out.println(ord);
-        // }
-        // System.out.println("\n");
-        // }
     }
 }
 
-// bst for commands
-class Commandes {
-    private Node root;
-
-    private class Node {
-        private int key;
-        private Node left;
-        private Node right;
-
-        public Node(int key) {
-            this.key = key;
-            left = null;
-            right = null;
-        }
-    }
-
-    public void insert(int key) {
-        root = insertNode(root, key);
-    }
-
-    private Node insertNode(Node root, int key) {
-        if (root == null) {
-            root = new Node(key);
-            return root;
-        }
-
-        if (key < root.key) {
-            root.left = insertNode(root.left, key);
-        } else if (key > root.key) {
-            root.right = insertNode(root.right, key);
-        }
-
-        return root;
-    }
-
-    public boolean search(int key) {
-        return searchNode(root, key);
-    }
-
-    private boolean searchNode(Node root, int key) {
-        if (root == null) {
-            return false;
-        }
-
-        if (key == root.key) {
-            return true;
-        } else if (key < root.key) {
-            return searchNode(root.left, key);
-        } else {
-            return searchNode(root.right, key);
-        }
-    }
-
-    public void inorderTraversal() {
-        inorder(root);
-    }
-
-    private void inorder(Node root) {
-        if (root != null) {
-            inorder(root.left);
-            System.out.print(root.key + " ");
-            inorder(root.right);
-        }
-    }
-}
 
 class Medicament {
     public String name;
@@ -97,24 +27,67 @@ class Medicament {
         this.expDate = expDate;
         amountToBeUsed = 0;
     }
+
+    //to get key nameTree
+    public String getName() {
+        return name;
+    }
+
+    //to get key expTree
+    public int getDate(){
+    //format :: 2017-10-27 -> 20171027
+        String stripped = expDate.replaceAll("-","");
+        return Integer.parseInt(stripped);
+    }
+
 }
+
 
 class NameTree {
     public Node root = null;
 
     private class Node {
-        public Medicament key;
+        public String key;
         private Node left;
         private Node right;
+        private ExpirationTree medStock;
 
-        public Node(Medicament key) {
+        public Node(String key) {
             this.key = key;
             left = null;
             right = null;
         }
+
     }
 
-    public Node insert(Medicament key) {
+    public boolean searchNode(Node root, String key) {
+        if (root == null) {
+            return false;
+        }
+        if (key.equals(root.key)) {
+            return true;
+        } else if (key.compareTo(root.key) < 0) {
+            return searchNode(root.left, key);
+        } else {
+            return searchNode(root.right, key);
+        }
+    }
+
+    public ArrayList<ExpirationTree> getExpTrees() {
+        ArrayList<ExpirationTree> expTrees = new ArrayList<>();
+        inOrder(root, expTrees);
+        return expTrees;
+    }
+
+    private void inOrder(Node node, ArrayList<ExpirationTree> expTrees) {
+        if (root != null) {
+            inOrder(root.left, expTrees);
+            expTrees.add(node.medStock);
+            inOrder(root.right, expTrees);
+        }
+    }
+
+    public Node insert(String key) {
         if (root == null) {
             root = new Node(key);
             return root;
@@ -124,42 +97,45 @@ class NameTree {
         return null;
     }
 
-    public Node insertNode(Node root, Medicament key) {
-        if (root == null) {
-            root = new Node(key);
-            return root;
+    public Node insertNode(Node root, String key) {
+        if (key.compareTo(root.key) < 0) {
+            if (root.left == null) {
+                root.left = new Node(key);
+                return root.left;
+            } else {
+                return insertNode(root.left, key);
+            }
+        } else if (key.compareTo(root.key) > 0) {
+            if (root.right == null) {
+                root.right = new Node(key);
+                return root.right;
+            } else {
+                return insertNode(root.right, key);
+            }
         }
-
-        int compareVal = root.key.name.compareTo(key.name);
-
-        if (compareVal < 0) {
-            root.left = insertNode(root.left, key);
-        } else if (compareVal > 0) {
-            root.right = insertNode(root.right, key);
-        } else {
-            root.key.amount += key.amount;
-        }
-
-        return root;
+        return null;
     }
 }
 
+
 class ExpirationTree {
     public Node root;
+    public String name;
 
     public class Node {
-        private Medicament key;
+        private int key;
         private Node left;
         private Node right;
+        private int amount;
 
-        public Node(Medicament key) {
+        public Node(int key) {
             this.key = key;
             left = null;
             right = null;
         }
     }
 
-    public Node insert(Medicament key) {
+    public Node insert(int key) {
         if (root == null) {
             root = new Node(key);
             return root;
@@ -169,24 +145,32 @@ class ExpirationTree {
         return null;
     }
 
-    public Node insertNode(Node root, Medicament key) {
+    public Node insertNode(Node root, int key) {
         if (root == null) {
             root = new Node(key);
             return root;
         }
-
-        // TODO: COMPARE DATES
-        boolean compareVal = true;
-
-        if (compareVal) {
+        if (key < root.key) {
             root.left = insertNode(root.left, key);
-        } else {
+        } else if (key > root.key) {
             root.right = insertNode(root.right, key);
         }
         return root;
     }
 
-    public String outputStock(Node root) {
+    public int getTrueAmount(Node root) {
+        if (root == null) {
+            return 0;
+        }
+
+        int leftSum = getTrueAmount(root.left);
+        int rightSum = getTrueAmount(root.right);
+        int nodeSum = root.amount;
+
+        return  leftSum + rightSum + nodeSum;
+    }
+
+    /*public String outputStock(Node root) {
         if (root == null) {
             return "";
         }
@@ -200,17 +184,15 @@ class ExpirationTree {
         }
 
         return aws;
-    }
+    } Done in Stock;  */
 
-    public Node findNode(Node root, Medicament key) {
+    public Node findNode(Node root, int key) {
         if (root == null) {
             return null;
         }
-        int compareVal = root.key.name.compareTo(key.name);
-
-        if (compareVal < 0) {
+        if (key < root.key) {
             findNode(root.left, key);
-        } else if (compareVal > 0) {
+        } else if (key > root.key) {
             findNode(root.right, key);
         } else {
             return root;
@@ -218,16 +200,15 @@ class ExpirationTree {
         return null;
     }
 
-    public void expireMeds(String currDate, NameTree tree) {
+    //public void expireMeds(String currDate, NameTree tree) {
         // TODO on enleve les nodes expiree, et on modifie le amount dans le name tree.
-    }
+    //}
 }
 
 class solution {
 
     private String[] args;
     private ArrayList<ArrayList<String>> parsedCmds;
-    private ArrayList<Medicament> stock;
 
     public void launch(String[] args) {
         this.args = args;
@@ -259,15 +240,14 @@ class solution {
 
     // build a bst for commands
     public void treatCmds() {
-        stock = new ArrayList<>();
         NameTree nameTree = new NameTree();
+        //TODO this wont work; initialize an expTree for each node of NameTree
         ExpirationTree expirationTree = new ExpirationTree();
 
-        String currDate = "";
-        String awns = "";
+        //String currDate = ""; --> only passed by commands "DATE _"
+        //String awns = "";
 
         for (ArrayList<String> cmd : parsedCmds) {
-            expirationTree.expireMeds(currDate, nameTree);
 
             switch (cmd.get(0)) {
                 case "APPROV :":
@@ -276,34 +256,36 @@ class solution {
                         String[] parts = med.split("\\s+");
                         Medicament medicament = new Medicament(parts[0], Integer.parseInt(parts[1]), parts[2]);
                         // Si il trouve le meme medicament, il add les amounts
-                        nameTree.insert(medicament);
-                        expirationTree.insert(medicament);
+                        updateStock(nameTree, expirationTree, medicament);
                     }
                     break;
                 case "STOCK ;":
-                    awns += "STOCK: " + currDate + "\n";
-                    awns += expirationTree.outputStock(expirationTree.root) + "\n";
+                    //traverse the nameTree and its nodes values
+                    //awns += "STOCK: " + currDate + "\n";
+                    ArrayList<ExpirationTree> expTrees = nameTree.getExpTrees();
+                    for (ExpirationTree tree : expTrees){
+                        System.out.println(tree.name + ": " + tree.getTrueAmount(tree.root));
+                    }
                     break;
                 case "PRESCRIPTION :":
                     break;
                 default:
                     // DATE
-
+                    //expirationTree.expireMeds(currDate, nameTree);
                     break;
             }
         }
-        System.out.println(awns);
-        outputAwns(awns);
+        //System.out.println(awns);
+        //outputAwns(awns);
     }
 
-    public void updateStock() {
+    public void updateStock(NameTree nameTree, ExpirationTree expirationTree, Medicament med) {
+        //only insert in nametree if not duplicate
+        if (! nameTree.searchNode(nameTree.root, med.getName())) {
+            nameTree.insert(med.getName());
+        }
+        //always insert in expirationTree
+        expirationTree.insert(med.getDate());
     }
 
-    public void outputAwns(String anws) {
-
-    }
-
-    public ArrayList<ArrayList<String>> getParsedCmds() {
-        return parsedCmds;
-    }
 }
