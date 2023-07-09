@@ -113,6 +113,18 @@ class NameTree {
         }
         return null;
     }
+
+    public void removeExpired(Node root, int currentDate) {
+        if (root == null) {
+            return;
+        } else {
+            if (root.medStock != null) {
+                root.medStock.removeExpiredNodes(root.medStock.root, currentDate);
+            }
+        }
+
+    }
+
 }
 
 class ExpirationTree {
@@ -120,7 +132,7 @@ class ExpirationTree {
     public String name;
 
     public class Node {
-        private int key;
+        public int key;
         private Node left;
         private Node right;
         public int amount;
@@ -129,6 +141,21 @@ class ExpirationTree {
             this.key = key;
             left = null;
             right = null;
+        }
+    }
+
+    public void removeExpiredNodes(Node root, int currentDate) {
+        if (root == null) {
+            return;
+        } else {
+            if (root.key < currentDate) {
+                // Quand la cle est plus petite, le sous arbre droit qui est peut etre pas
+                // expire prend le dessus
+                root = root.right;
+                removeExpiredNodes(root, currentDate);
+            } else {
+                removeExpiredNodes(root.right, currentDate);
+            }
         }
     }
 
@@ -143,33 +170,33 @@ class ExpirationTree {
         return null;
     }
 
-    //removes amount starting from leftmost (minimum Date)
+    // removes amount starting from leftmost (minimum Date)
     public int removeAmount(int amount) {
         int remainingAmount = amount;
         Node minNode = findMinNode(root);
 
         int diff = Math.min(minNode.amount, remainingAmount);
-        //so that remainingAmount and minNode.amount will never < 0
+        // so that remainingAmount and minNode.amount will never < 0
         minNode.amount -= diff;
         remainingAmount -= diff;
-        //if the amount surpasses what node contains, we are done with node.
+        // if the amount surpasses what node contains, we are done with node.
         if (minNode.amount == 0) {
             root = removeNode(root, minNode.key);
         }
-        //onto the next node, only if there are nodes left
+        // onto the next node, only if there are nodes left
         minNode = findMinNode(root);
-        if(remainingAmount != 0 && minNode != null) {
-            removeAmount(remainingAmount);
+        if (remainingAmount != 0 && minNode != null) {
+            remainingAmount = removeAmount(remainingAmount);
         }
-        //if there are still orders to be filled get number
-        //else should be 0
+        // if there are still orders to be filled get number
+        // else should be 0
         return remainingAmount;
     }
 
     public Node removeNode(Node root, int key) {
         if (root == null) {
             return null;
-        } else if(key>root.key){
+        } else if (key > root.key) {
             root.right = removeNode(root.right, key);
         } else {
             if (root.left == null) {
@@ -188,7 +215,7 @@ class ExpirationTree {
         return root;
     }
 
-    //since already avl, minimum to the left++
+    // since already avl, minimum to the left++
     private Node findMinNode(Node node) {
         Node curr = node;
         while (curr.left != null) {
@@ -269,7 +296,7 @@ class solution {
 
     public void parseFile() {
         parsedCmds = new ArrayList<>();
-        String path = "src/tests/exemple1.txt";
+        String path = "tests/exemple1.txt";
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line;
             ArrayList<String> app = new ArrayList();
@@ -295,7 +322,7 @@ class solution {
 
         int currDate = 0;
         String date = null;
-        // String awns = "";
+        String awns = "";
 
         for (ArrayList<String> cmd : parsedCmds) {
             String caseStr = cmd.get(0);
@@ -311,7 +338,8 @@ class solution {
                     }
                     break;
                 case "STOCK":
-                    System.out.println("Stock "+ date);
+                    System.out.println(
+                            "Stock " + date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8));
                     ArrayList<ExpirationTree> expTrees = nameTree.getExpTrees();
                     for (ExpirationTree tree : expTrees) {
                         System.out.println(tree.outputStock(tree.root));
@@ -331,10 +359,31 @@ class solution {
                 default:
                     String newDate = cmd.get(0);
                     date = newDate.substring(newDate.indexOf(" ") + 1, newDate.lastIndexOf(" ;"));
-                    removeExpired(); //TODO using removeNode
+                    if (validateDate(date)) {
+                        date = date.substring(0, 4) + date.substring(5, 7) + date.substring(8, 10);
+                        currDate = Integer.parseInt(date);
+                        nameTree.removeExpired(nameTree.root, currDate);
+                    } else {
+                        System.out.println("Erreur, la date n'est pas valide !");
+                    }
+
                     break;
             }
         }
+    }
+
+    public boolean validateDate(String date) {
+        String[] dateParts = date.split("-");
+
+        int year = Integer.parseInt(dateParts[0]);
+        int month = Integer.parseInt(dateParts[1]);
+        int day = Integer.parseInt(dateParts[2]);
+
+        boolean isValidYear = year >= 0 && year <= 9999;
+        boolean isValidMonth = month >= 1 && month <= 12;
+        boolean isValidDay = day >= 1 && day <= 31;
+
+        return isValidYear && isValidMonth && isValidDay;
     }
 
     public void updateStock(NameTree nameTree, ExpirationTree expirationTree, Medicament med) {
@@ -352,21 +401,17 @@ class solution {
         NameTree.Node neededTree = nameTree.searchNode(nameTree.root, name); // Prescription Name
         // boolean succes = neededTree.medStock.removeAmount(0); // Prescription amount
         try {
-            ExpirationTree exptree = neededTree.medStock; //if nullpointer exc aka not initialized
+            ExpirationTree exptree = neededTree.medStock; // if nullpointer exc aka not initialized
             int stock = exptree.getTrueAmount(exptree.root);
             if (stock >= amount) {
                 exptree.removeAmount(amount);
-                System.out.println(exptree.getTrueAmount(exptree.root));
+                System.out.println(name + " OK");
             } else {
-                //TODO passer une commande
+                // TODO passer une commande
             }
         } catch (Exception NullPointerException) {
-            //TODO passer une commande
+            // TODO passer une commande
         }
-
-    }
-
-    public void removeExpired(){
 
     }
 
