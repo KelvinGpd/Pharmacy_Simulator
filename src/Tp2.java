@@ -1,3 +1,4 @@
+import javax.naming.Name;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -142,11 +143,58 @@ class ExpirationTree {
         return null;
     }
 
-    public boolean removeAmount(int amount) {
-        // TRAVERSE TT
-        // doit enlever 30 meds
+    //removes amount starting from leftmost (minimum Date)
+    public int removeAmount(int amount) {
+        int remainingAmount = amount;
+        Node minNode = findMinNode(root);
 
-        return true;
+        int diff = Math.min(minNode.amount, remainingAmount);
+        //so that remainingAmount and minNode.amount will never < 0
+        minNode.amount -= diff;
+        remainingAmount -= diff;
+        //if the amount surpasses what node contains, we are done with node.
+        if (minNode.amount == 0) {
+            root = removeNode(root, minNode.key);
+        }
+        //onto the next node, only if there are nodes left
+        minNode = findMinNode(root);
+        if(remainingAmount != 0 && minNode != null) {
+            removeAmount(remainingAmount);
+        }
+        //if there are still orders to be filled get number
+        //else should be 0
+        return remainingAmount;
+    }
+
+    public Node removeNode(Node root, int key) {
+        if (root == null) {
+            return null;
+        } else if(key>root.key){
+            root.right = removeNode(root.right, key);
+        } else {
+            if (root.left == null) {
+                return root.right;
+            } else if (root.right == null) {
+                return root.left;
+            }
+
+            Node minNode = findMinNode(root.right);
+            root.key = minNode.key;
+            root.amount = minNode.amount;
+
+            root.right = removeNode(root.right, minNode.key);
+
+        }
+        return root;
+    }
+
+    //since already avl, minimum to the left++
+    private Node findMinNode(Node node) {
+        Node curr = node;
+        while (curr.left != null) {
+            curr = curr.left;
+        }
+        return curr;
     }
 
     public Node insertNode(Node root, int key, int amount) {
@@ -206,9 +254,6 @@ class ExpirationTree {
         return null;
     }
 
-    // public void expireMeds(String currDate, NameTree tree) {
-    // TODO on enleve les nodes expiree, et on modifie le amount dans le name tree.
-    // }
 }
 
 class solution {
@@ -224,7 +269,7 @@ class solution {
 
     public void parseFile() {
         parsedCmds = new ArrayList<>();
-        String path = "tests/exemple1.txt";
+        String path = "src/tests/exemple1.txt";
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line;
             ArrayList<String> app = new ArrayList();
@@ -247,59 +292,49 @@ class solution {
     // build a bst for commands
     public void treatCmds() {
         NameTree nameTree = new NameTree();
-        // TODO this wont work; initialize an expTree for each node of NameTree
 
         int currDate = 0;
+        String date = null;
         // String awns = "";
 
         for (ArrayList<String> cmd : parsedCmds) {
-
-            switch (cmd.get(0)) {
-                case "APPROV :":
+            String caseStr = cmd.get(0);
+            int spaceIndex = caseStr.indexOf(" ");
+            switch (caseStr.substring(0, spaceIndex)) {
+                case "APPROV":
                     for (int i = 1; i < cmd.size(); i++) {
                         String med = cmd.get(i);
                         String[] parts = med.split("\\s+");
                         Medicament medicament = new Medicament(parts[0], Integer.parseInt(parts[1]), parts[2]);
                         ExpirationTree expirationTree = new ExpirationTree();
-                        // Si il trouve le meme medicament, il add les amounts
                         updateStock(nameTree, expirationTree, medicament);
                     }
                     break;
-                case "STOCK ;":
-                    // Enlever expired expiration tree
-                    System.out.println("Stock 2020-10-30");
-                    // traverse the nameTree and its nodes values
-                    // awns += "STOCK: " + currDate + "\n";
+                case "STOCK":
+                    System.out.println("Stock "+ date);
                     ArrayList<ExpirationTree> expTrees = nameTree.getExpTrees();
                     for (ExpirationTree tree : expTrees) {
                         System.out.println(tree.outputStock(tree.root));
                     }
                     break;
-                case "PRESCRIPTION :":
+                case "PRESCRIPTION":
                     // TODO
                     // Enlever expired
                     // Prendre furthest from expired
-
-                    NameTree.Node neededTree = nameTree.searchNode(nameTree.root, " "); // Prescription Name
-                    boolean succes = true;
-                    // boolean succes = neededTree.medStock.removeAmount(0); // Prescription amount
-                    if (succes) {
-                        // Did remove
-                    } else {
-                        // Fail
-                        // wait
+                    for (int i = 1; i < cmd.size(); i++) {
+                        String prescription = cmd.get(i);
+                        String[] parts = prescription.split("\\s+");
+                        int amount = Integer.parseInt(parts[1]) * Integer.parseInt(parts[2]);
+                        removeStock(parts[0], amount, nameTree);
                     }
-
                     break;
                 default:
-                    // DATE
-                    // expirationTree.expireMeds(currDate, nameTree);
+                    String newDate = cmd.get(0);
+                    date = newDate.substring(newDate.indexOf(" ") + 1, newDate.lastIndexOf(" ;"));
+                    removeExpired(); //TODO using removeNode
                     break;
             }
         }
-        // System.out.println(awns);
-
-        // outputAwns(awns);
     }
 
     public void updateStock(NameTree nameTree, ExpirationTree expirationTree, Medicament med) {
@@ -311,6 +346,28 @@ class solution {
         }
         // always insert in expirationTree
         expirationTree.insert(med.getDate(), med.amount);
+    }
+
+    public void removeStock(String name, int amount, NameTree nameTree) {
+        NameTree.Node neededTree = nameTree.searchNode(nameTree.root, name); // Prescription Name
+        // boolean succes = neededTree.medStock.removeAmount(0); // Prescription amount
+        try {
+            ExpirationTree exptree = neededTree.medStock; //if nullpointer exc aka not initialized
+            int stock = exptree.getTrueAmount(exptree.root);
+            if (stock >= amount) {
+                exptree.removeAmount(amount);
+                System.out.println(exptree.getTrueAmount(exptree.root));
+            } else {
+                //TODO passer une commande
+            }
+        } catch (Exception NullPointerException) {
+            //TODO passer une commande
+        }
+
+    }
+
+    public void removeExpired(){
+
     }
 
 }
