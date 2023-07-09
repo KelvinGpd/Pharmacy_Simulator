@@ -296,7 +296,7 @@ class solution {
 
     public void parseFile() {
         parsedCmds = new ArrayList<>();
-        String path = "tests/exemple2.txt";
+        String path = "src/tests/exemple2.txt";
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line;
             ArrayList<String> app = new ArrayList();
@@ -329,7 +329,13 @@ class solution {
             String caseStr = cmd.get(0);
             int spaceIndex = caseStr.indexOf(" ");
             spaceIndex = Math.max(spaceIndex, 0);
-            switch (caseStr.substring(0, spaceIndex)) {
+            String firstWord = caseStr.substring(0, spaceIndex).trim();
+
+            if (firstWord.isEmpty()) {
+                firstWord = caseStr;
+            }
+
+            switch (firstWord) {
                 case "APPROV":
                     for (int i = 1; i < cmd.size(); i++) {
                         String med = cmd.get(i);
