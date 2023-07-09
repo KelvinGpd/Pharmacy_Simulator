@@ -296,7 +296,7 @@ class solution {
 
     public void parseFile() {
         parsedCmds = new ArrayList<>();
-        String path = "tests/exemple1.txt";
+        String path = "tests/exemple2.txt";
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line;
             ArrayList<String> app = new ArrayList();
@@ -323,10 +323,12 @@ class solution {
         int currDate = 0;
         String date = null;
         String awns = "";
+        int count = 1;
 
         for (ArrayList<String> cmd : parsedCmds) {
             String caseStr = cmd.get(0);
             int spaceIndex = caseStr.indexOf(" ");
+            spaceIndex = Math.max(spaceIndex, 0);
             switch (caseStr.substring(0, spaceIndex)) {
                 case "APPROV":
                     for (int i = 1; i < cmd.size(); i++) {
@@ -349,16 +351,18 @@ class solution {
                     // TODO
                     // Enlever expired
                     // Prendre furthest from expired
+                    System.out.println("Presciption" + count);
                     for (int i = 1; i < cmd.size(); i++) {
                         String prescription = cmd.get(i);
                         String[] parts = prescription.split("\\s+");
                         int amount = Integer.parseInt(parts[1]) * Integer.parseInt(parts[2]);
                         removeStock(parts[0], amount, nameTree);
                     }
+                    count++;
                     break;
                 default:
                     String newDate = cmd.get(0);
-                    date = newDate.substring(newDate.indexOf(" ") + 1, newDate.lastIndexOf(" ;"));
+                    date = newDate.substring(newDate.indexOf(" ") + 1, 15);
                     if (validateDate(date)) {
                         date = date.substring(0, 4) + date.substring(5, 7) + date.substring(8, 10);
                         currDate = Integer.parseInt(date);
@@ -407,10 +411,12 @@ class solution {
                 exptree.removeAmount(amount);
                 System.out.println(name + " OK");
             } else {
-                // TODO passer une commande
+                System.out.println(name + " COMMANDE");
+                // TODO, additionnal logic probably
             }
         } catch (Exception NullPointerException) {
             // TODO passer une commande
+            System.out.println(name + " COMMANDE");
         }
 
     }
