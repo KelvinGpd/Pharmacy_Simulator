@@ -47,13 +47,13 @@ class NameTree {
         public String key;
         private Node left;
         private Node right;
-        public ExpirationTree medStock;
+        public ExpirationTree medStock = new ExpirationTree();
 
-        public Node(String key, ExpirationTree medStock) {
+        public Node(String key) {
             this.key = key;
             left = null;
             right = null;
-            this.medStock = medStock;
+            medStock.name = key;
         }
 
     }
@@ -85,30 +85,30 @@ class NameTree {
         }
     }
 
-    public Node insert(String key, ExpirationTree tree) {
+    public Node insert(String key) {
         if (root == null) {
-            root = new Node(key, tree);
+            root = new Node(key);
             return root;
         } else {
-            insertNode(root, key, tree);
+            insertNode(root, key);
         }
         return null;
     }
 
-    public Node insertNode(Node root, String key, ExpirationTree tree) {
+    public Node insertNode(Node root, String key) {
         if (key.compareTo(root.key) < 0) {
             if (root.left == null) {
-                root.left = new Node(key, tree);
+                root.left = new Node(key);
                 return root.left;
             } else {
-                return insertNode(root.left, key, tree);
+                return insertNode(root.left, key);
             }
         } else if (key.compareTo(root.key) > 0) {
             if (root.right == null) {
-                root.right = new Node(key, tree);
+                root.right = new Node(key);
                 return root.right;
             } else {
-                return insertNode(root.right, key, tree);
+                return insertNode(root.right, key);
             }
         }
         return null;
@@ -159,6 +159,25 @@ class ExpirationTree {
         }
     }
 
+    //un truc que jai essaye lmao
+    /*public void removeExpired(int currentDate) {
+        root = removeExpiredNodes(root, currentDate);
+    }
+
+    private Node removeExpiredNodes(Node root, int currentDate) {
+        if (root == null) {
+            return null;
+        }
+
+        Node min = findMinNode(root);
+        if (min.key < currentDate) {
+            root = removeNode(root, min.key);
+            removeExpiredNodes(root, currentDate);
+        }
+
+        return root;
+    }*/
+
     public Node insert(int key, int amount) {
         if (root == null) {
             root = new Node(key);
@@ -193,7 +212,7 @@ class ExpirationTree {
         return remainingAmount;
     }
 
-    public Node removeNode(Node root, int key) {
+    private Node removeNode(Node root, int key) {
         if (root == null) {
             return null;
         } else if (key > root.key) {
@@ -261,26 +280,11 @@ class ExpirationTree {
             aws = outputStock(root.left) + "\n" + aws;
         }
         if (root.right != null) {
-            aws += "\n" + outputStock(root.left);
+            aws += "\n" + outputStock(root.right);
         }
 
         return aws;
     }
-
-    public Node findNode(Node root, int key) {
-        if (root == null) {
-            return null;
-        }
-        if (key < root.key) {
-            findNode(root.left, key);
-        } else if (key > root.key) {
-            findNode(root.right, key);
-        } else {
-            return root;
-        }
-        return null;
-    }
-
 }
 
 class solution {
@@ -296,7 +300,7 @@ class solution {
 
     public void parseFile() {
         parsedCmds = new ArrayList<>();
-        String path = "src/tests/exemple2.txt";
+        String path = "src/tests/exemple5.txt";
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line;
             ArrayList<String> app = new ArrayList();
@@ -322,7 +326,6 @@ class solution {
 
         int currDate = 0;
         String date = null;
-        String awns = "";
         int count = 1;
 
         for (ArrayList<String> cmd : parsedCmds) {
@@ -341,8 +344,8 @@ class solution {
                         String med = cmd.get(i);
                         String[] parts = med.split("\\s+");
                         Medicament medicament = new Medicament(parts[0], Integer.parseInt(parts[1]), parts[2]);
-                        ExpirationTree expirationTree = new ExpirationTree();
-                        updateStock(nameTree, expirationTree, medicament);
+                        //ExpirationTree expirationTree = new ExpirationTree();
+                        updateStock(nameTree, medicament);
                     }
                     break;
                 case "STOCK":
@@ -350,6 +353,7 @@ class solution {
                             "Stock " + date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8));
                     ArrayList<ExpirationTree> expTrees = nameTree.getExpTrees();
                     for (ExpirationTree tree : expTrees) {
+                        //System.out.println(tree.name);
                         System.out.println(tree.outputStock(tree.root));
                     }
                     break;
@@ -370,7 +374,7 @@ class solution {
                     String newDate = cmd.get(0);
                     date = newDate.substring(newDate.indexOf(" ") + 1, 15);
                     if (validateDate(date)) {
-                        date = date.substring(0, 4) + date.substring(5, 7) + date.substring(8, 10);
+                        date = date.replaceAll("-", "");
                         currDate = Integer.parseInt(date);
                         nameTree.removeExpired(nameTree.root, currDate);
                     } else {
@@ -396,20 +400,18 @@ class solution {
         return isValidYear && isValidMonth && isValidDay;
     }
 
-    public void updateStock(NameTree nameTree, ExpirationTree expirationTree, Medicament med) {
+    public void updateStock(NameTree nameTree, Medicament med) {
         // only insert in nametree if not duplicate
         if (nameTree.searchNode(nameTree.root, med.getName()) == null) {
-
-            nameTree.insert(med.getName(), expirationTree);
-            expirationTree.name = med.getName();
+            nameTree.insert(med.getName());
         }
+        NameTree.Node node = nameTree.searchNode(nameTree.root, med.getName());
         // always insert in expirationTree
-        expirationTree.insert(med.getDate(), med.amount);
+        node.medStock.insert(med.getDate(), med.amount);
     }
 
     public void removeStock(String name, int amount, NameTree nameTree) {
         NameTree.Node neededTree = nameTree.searchNode(nameTree.root, name); // Prescription Name
-        // boolean succes = neededTree.medStock.removeAmount(0); // Prescription amount
         try {
             ExpirationTree exptree = neededTree.medStock; // if nullpointer exc aka not initialized
             int stock = exptree.getTrueAmount(exptree.root);
