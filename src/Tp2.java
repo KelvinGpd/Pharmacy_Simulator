@@ -119,8 +119,10 @@ class NameTree {
             return;
         } else {
             if (root.medStock != null) {
-                root.medStock.removeExpiredNodes(root.medStock.root, currentDate);
+                root.medStock.root = root.medStock.removeExpiredNodes(root.medStock.root, currentDate);
             }
+            removeExpired(root.right, currentDate);
+            removeExpired(root.left, currentDate);
         }
 
     }
@@ -144,19 +146,21 @@ class ExpirationTree {
         }
     }
 
-    public void removeExpiredNodes(Node root, int currentDate) {
-        if (root == null) {
-            return;
+    public Node removeExpiredNodes(Node node, int currentDate) {
+        if (node == null) {
+            return null;
         } else {
-            if (root.key < currentDate) {
+            if (node.key < currentDate) {
                 // Quand la cle est plus petite, le sous arbre droit qui est peut etre pas
                 // expire prend le dessus
-                root = root.right;
-                removeExpiredNodes(root, currentDate);
+                node.right = removeExpiredNodes(node.right, currentDate);
+                return node.right;
             } else {
-                removeExpiredNodes(root.right, currentDate);
+                node.left = removeExpiredNodes(node.left, currentDate);
+                return node;
             }
         }
+
     }
 
     // un truc que jai essaye lmao
@@ -282,7 +286,7 @@ class ExpirationTree {
             aws = outputStock(root.left) + "\n" + aws;
         }
         if (root.right != null) {
-            aws += "\n" + outputStock(root.right);
+            aws = outputStock(root.right) + "\n" + aws;
         }
 
         return aws;
@@ -303,7 +307,7 @@ class solution {
 
     public void parseFile() {
         parsedCmds = new ArrayList<>();
-        String path = "src/tests/exemple5.txt";
+        String path = "tests/exemple5.txt";
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line;
             ArrayList<String> app = new ArrayList();
@@ -352,12 +356,16 @@ class solution {
                     }
                     break;
                 case "STOCK":
+                    nameTree.removeExpired(nameTree.root, currDate);
                     System.out.println(
                             "Stock " + toStringDate(currDate));
                     ArrayList<ExpirationTree> expTrees = nameTree.getExpTrees();
                     for (ExpirationTree tree : expTrees) {
                         // System.out.println(tree.name);
-                        System.out.println(tree.outputStock(tree.root));
+                        if (tree.outputStock(tree.root) != "") {
+                            System.out.println(tree.outputStock(tree.root));
+                        }
+
                     }
                     break;
                 case "PRESCRIPTION":
