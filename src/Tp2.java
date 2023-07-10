@@ -119,8 +119,10 @@ class NameTree {
             return;
         } else {
             if (root.medStock != null) {
-                root.medStock.removeExpiredNodes(root.medStock.root, currentDate);
+                root.medStock.root = root.medStock.removeExpiredNodes(root.medStock.root, currentDate);
             }
+            removeExpired(root.right, currentDate);
+            removeExpired(root.left, currentDate);
         }
 
     }
@@ -144,39 +146,43 @@ class ExpirationTree {
         }
     }
 
-    public void removeExpiredNodes(Node root, int currentDate) {
-        if (root == null) {
-            return;
+    public Node removeExpiredNodes(Node node, int currentDate) {
+        if (node == null) {
+            return null;
         } else {
-            if (root.key < currentDate) {
+            if (node.key < currentDate) {
                 // Quand la cle est plus petite, le sous arbre droit qui est peut etre pas
                 // expire prend le dessus
-                root = root.right;
-                removeExpiredNodes(root, currentDate);
+                node.right = removeExpiredNodes(node.right, currentDate);
+                return node.right;
             } else {
-                removeExpiredNodes(root.right, currentDate);
+                node.left = removeExpiredNodes(node.left, currentDate);
+                return node;
             }
         }
+
     }
 
-    //un truc que jai essaye lmao
-    /*public void removeExpired(int currentDate) {
-        root = removeExpiredNodes(root, currentDate);
-    }
-
-    private Node removeExpiredNodes(Node root, int currentDate) {
-        if (root == null) {
-            return null;
-        }
-
-        Node min = findMinNode(root);
-        if (min.key < currentDate) {
-            root = removeNode(root, min.key);
-            removeExpiredNodes(root, currentDate);
-        }
-
-        return root;
-    }*/
+    // un truc que jai essaye lmao
+    /*
+     * public void removeExpired(int currentDate) {
+     * root = removeExpiredNodes(root, currentDate);
+     * }
+     * 
+     * private Node removeExpiredNodes(Node root, int currentDate) {
+     * if (root == null) {
+     * return null;
+     * }
+     * 
+     * Node min = findMinNode(root);
+     * if (min.key < currentDate) {
+     * root = removeNode(root, min.key);
+     * removeExpiredNodes(root, currentDate);
+     * }
+     * 
+     * return root;
+     * }
+     */
 
     public Node insert(int key, int amount) {
         if (root == null) {
@@ -280,7 +286,7 @@ class ExpirationTree {
             aws = outputStock(root.left) + "\n" + aws;
         }
         if (root.right != null) {
-            aws += "\n" + outputStock(root.right);
+            aws = outputStock(root.right) + "\n" + aws;
         }
 
         return aws;
@@ -291,6 +297,7 @@ class solution {
 
     private String[] args;
     private ArrayList<ArrayList<String>> parsedCmds;
+    private String commands = "";
 
     public void launch(String[] args) {
         this.args = args;
@@ -300,7 +307,7 @@ class solution {
 
     public void parseFile() {
         parsedCmds = new ArrayList<>();
-        String path = "src/tests/exemple5.txt";
+        String path = "tests/exemple5.txt";
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line;
             ArrayList<String> app = new ArrayList();
@@ -344,17 +351,21 @@ class solution {
                         String med = cmd.get(i);
                         String[] parts = med.split("\\s+");
                         Medicament medicament = new Medicament(parts[0], Integer.parseInt(parts[1]), parts[2]);
-                        //ExpirationTree expirationTree = new ExpirationTree();
+                        // ExpirationTree expirationTree = new ExpirationTree();
                         updateStock(nameTree, medicament);
                     }
                     break;
                 case "STOCK":
+                    nameTree.removeExpired(nameTree.root, currDate);
                     System.out.println(
-                            "Stock " + date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8));
+                            "Stock " + toStringDate(currDate));
                     ArrayList<ExpirationTree> expTrees = nameTree.getExpTrees();
                     for (ExpirationTree tree : expTrees) {
-                        //System.out.println(tree.name);
-                        System.out.println(tree.outputStock(tree.root));
+                        // System.out.println(tree.name);
+                        if (tree.outputStock(tree.root) != "") {
+                            System.out.println(tree.outputStock(tree.root));
+                        }
+
                     }
                     break;
                 case "PRESCRIPTION":
@@ -377,6 +388,12 @@ class solution {
                         date = date.replaceAll("-", "");
                         currDate = Integer.parseInt(date);
                         nameTree.removeExpired(nameTree.root, currDate);
+                        if (commands != "") {
+                            System.out.println("DATE " + toStringDate(currDate) + ":");
+                            System.out.println(commands);
+                        } else {
+                            System.out.println("DATE " + toStringDate(currDate) + " OK");
+                        }
                     } else {
                         System.out.println("Erreur, la date n'est pas valide !");
                     }
@@ -384,6 +401,11 @@ class solution {
                     break;
             }
         }
+    }
+
+    public String toStringDate(int dateInt) {
+        String date = String.valueOf(dateInt);
+        return date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8);
     }
 
     public boolean validateDate(String date) {
@@ -420,11 +442,13 @@ class solution {
                 System.out.println(name + " OK");
             } else {
                 System.out.println(name + " COMMANDE");
+                commands += name + "    COMMANDE\n";
                 // TODO, additionnal logic probably
             }
         } catch (Exception NullPointerException) {
             // TODO passer une commande
             System.out.println(name + " COMMANDE");
+            commands += name + "COMMANDE";
         }
 
     }
