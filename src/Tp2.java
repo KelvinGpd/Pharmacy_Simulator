@@ -287,6 +287,7 @@ class solution {
 
     private String[] args;
     private ArrayList<ArrayList<String>> parsedCmds;
+    private String commands = "";
 
     public void launch(String[] args) {
         this.args = args;
@@ -296,7 +297,7 @@ class solution {
 
     public void parseFile() {
         parsedCmds = new ArrayList<>();
-        String path = "tests/exemple2.txt";
+        String path = "tests/exemple3.txt";
         try (BufferedReader br = new BufferedReader(new FileReader(path))) {
             String line;
             ArrayList<String> app = new ArrayList();
@@ -341,7 +342,7 @@ class solution {
                     break;
                 case "STOCK":
                     System.out.println(
-                            "Stock " + date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8));
+                            "Stock " + toStringDate(currDate));
                     ArrayList<ExpirationTree> expTrees = nameTree.getExpTrees();
                     for (ExpirationTree tree : expTrees) {
                         System.out.println(tree.outputStock(tree.root));
@@ -367,6 +368,12 @@ class solution {
                         date = date.substring(0, 4) + date.substring(5, 7) + date.substring(8, 10);
                         currDate = Integer.parseInt(date);
                         nameTree.removeExpired(nameTree.root, currDate);
+                        if (commands != "") {
+                            System.out.println("DATE " + toStringDate(currDate) + ":");
+                            System.out.println(commands);
+                        } else {
+                            System.out.println("DATE " + toStringDate(currDate) + " OK");
+                        }
                     } else {
                         System.out.println("Erreur, la date n'est pas valide !");
                     }
@@ -374,6 +381,11 @@ class solution {
                     break;
             }
         }
+    }
+
+    public String toStringDate(int dateInt) {
+        String date = String.valueOf(dateInt);
+        return date.substring(0, 4) + "-" + date.substring(4, 6) + "-" + date.substring(6, 8);
     }
 
     public boolean validateDate(String date) {
@@ -412,11 +424,13 @@ class solution {
                 System.out.println(name + " OK");
             } else {
                 System.out.println(name + " COMMANDE");
+                commands += name + "    COMMANDE\n";
                 // TODO, additionnal logic probably
             }
         } catch (Exception NullPointerException) {
             // TODO passer une commande
             System.out.println(name + " COMMANDE");
+            commands += name + "COMMANDE";
         }
 
     }
